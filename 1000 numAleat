@@ -1,0 +1,55 @@
+import random
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+# Generar 100 números aleatorios
+n = 100
+numeros_aleatorios = [random.random() for _ in range(n)]
+
+# Prueba de Uniformidad: Chi-cuadrado
+def prueba_uniformidad(numeros):
+    # Frecuencias observadas
+    frec_obs, _ = np.histogram(numeros, bins=10, range=(0, 1))
+    # Frecuencias esperadas en una distribución uniforme
+    frec_esp = np.full(10, len(numeros)/10)
+    # Prueba Chi-cuadrado
+    chi2, p_valor = stats.chisquare(frec_obs, frec_esp)
+    return chi2, p_valor
+
+# Prueba de Aleatoriedad: Prueba de corridas (runs test)
+def prueba_aleatoriedad(numeros):
+    mediana = np.median(numeros)
+    corridas = ''.join(['1' if x >= mediana else '0' for x in numeros])
+    cambios = sum(1 for i in range(1, len(corridas)) if corridas[i] != corridas[i-1])
+    n1 = corridas.count('1')
+    n2 = corridas.count('0')
+    
+    # Estadístico de prueba
+    media_corridas = ((2 * n1 * n2) / (n1 + n2)) + 1
+    var_corridas = (2 * n1 * n2 * (2 * n1 * n2 - n1 - n2)) / (((n1 + n2) ** 2) * (n1 + n2 - 1))
+    z = (cambios - media_corridas) / np.sqrt(var_corridas)
+    p_valor = 2 * (1 - stats.norm.cdf(abs(z)))  # valor p
+    return z, p_valor
+
+# Prueba de Independencia: Autocorrelación
+def prueba_independencia(numeros, k=1):
+    n = len(numeros)
+    media = np.mean(numeros)
+    autocorr = np.corrcoef(numeros[:-k], numeros[k:])[0, 1]
+    return autocorr
+
+# Resultados
+chi2, p_uniformidad = prueba_uniformidad(numeros_aleatorios)
+z_aleatoriedad, p_aleatoriedad = prueba_aleatoriedad(numeros_aleatorios)
+autocorrelacion = prueba_independencia(numeros_aleatorios)
+
+# Mostrar resultados
+print(f"Prueba de Uniformidad (Chi-cuadrado): Chi2 = {chi2:.4f}, p-valor = {p_uniformidad:.4f}")
+print(f"Prueba de Aleatoriedad (Corridas): Z = {z_aleatoriedad:.4f}, p-valor = {p_aleatoriedad:.4f}")
+print(f"Prueba de Independencia (Autocorrelación): Autocorrelación = {autocorrelacion:.4f}")
+
+# Histograma para visualizar uniformidad
+plt.hist(numeros_aleatorios, bins=10, range=(0, 1), edgecolor='black')
+plt.title('Histograma de los números generados')
+plt.show()
